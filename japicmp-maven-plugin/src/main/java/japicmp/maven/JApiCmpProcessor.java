@@ -140,13 +140,6 @@ public class JApiCmpProcessor {
 						break;
 					}
 				}
-				if (foundSemanticVersionLevel == null) {
-					throw new MojoFailureException("Unknown semantic version level '"
-						+ semanticVersionLevel
-						+ "'. Supported values: "
-						+ Joiner.on(',').join(
-						JApiSemanticVersionLevel.values()));
-				}
 				comparatorOptions.addOverrideCompatibilityChange(
 					new JarArchiveComparatorOptions.OverrideCompatibilityChange(foundChange,
 						configChange.isBinaryCompatible(),
@@ -760,7 +753,7 @@ public class JApiCmpProcessor {
 		Set<org.apache.maven.artifact.Artifact> projectDependencies =
 			mavenProject.getArtifacts();
 
-		HashSet<Artifact> result = new HashSet<>(1+projectDependencies.size());
+		HashSet<Artifact> result = new HashSet<>(1 + projectDependencies.size());
 		// Include the project artifact; use the reactor to resolve the project artifact in case it's not being built
 		Artifact project = RepositoryUtils.toArtifact(mavenProject.getArtifact());
 		result.add(resolveArtifact(project, ConfigurationVersion.NEW));
@@ -899,22 +892,9 @@ public class JApiCmpProcessor {
 				}
 			}
 		} else {
-			String systemPath = dependency.getSystemPath();
-			Pattern pattern = Pattern.compile("\\$\\{([^}])");
-			Matcher matcher = pattern.matcher(systemPath);
-			if (matcher.matches()) {
-				for (int i = 1; i <= matcher.groupCount(); i++) {
-					String property = matcher.group(i);
-					String propertyResolved = mavenParameters.mavenProject().getProperties().getProperty(
-						property);
-					if (propertyResolved != null) {
-						systemPath = systemPath.replaceAll("${" + property + "}", propertyResolved);
-					} else {
-						throw new MojoFailureException("Could not resolve property '" + property + "'.");
-					}
-				}
-			}
-			File file = new File(systemPath);
+			// Substitute any properties in the path with their values
+			final String systemPath = expandProperties(dependency.getSystemPath());
+			final File file = new File(systemPath);
 			boolean addFile = true;
 			if (!file.exists()) {
 				if (ignoreMissingArtifact(configurationVersion)) {
@@ -940,6 +920,30 @@ public class JApiCmpProcessor {
 			}
 		}
 		return jApiCmpArchives;
+	}
+
+	/**
+	 * Expands any properties found in the given {@code String}.
+	 *
+	 * @param source the source {@code String} to expand
+	 * @return the source  {@code String} with all properties expanded
+	 * @throws MojoFailureException if a property can't be resolved
+	 */
+	private String expandProperties(final String source) throws MojoFailureException {
+		final StringBuffer newString = new StringBuffer();
+		final Pattern pattern = Pattern.compile("\\$\\{([^}]*)}");
+		final Matcher matcher = pattern.matcher(source);
+		while (matcher.find()) {
+			final String property = matcher.group(1);
+			final String propertyResolved = mavenParameters.mavenProject().getProperties().getProperty(property);
+			if (propertyResolved != null) {
+				matcher.appendReplacement(newString, Matcher.quoteReplacement(propertyResolved));
+			} else {
+				throw new MojoFailureException("Could not resolve property '" + property + "'.");
+			}
+		}
+		matcher.appendTail(newString);
+		return newString.toString();
 	}
 
 	private boolean ignoreMissingArtifact(final ConfigurationVersion configurationVersion) {
