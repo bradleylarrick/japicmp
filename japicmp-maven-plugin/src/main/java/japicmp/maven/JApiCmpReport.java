@@ -17,9 +17,7 @@ import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.RemoteRepository;
 
 import java.io.File;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 @Mojo(name = "cmp-report", defaultPhase = LifecyclePhase.SITE)
 public class JApiCmpReport extends AbstractMavenReport {
@@ -69,28 +67,37 @@ public class JApiCmpReport extends AbstractMavenReport {
 	PluginParameters pluginParameters;
 	JApiCmpProcessor processor;
 
+	/**
+	 * Default constructor.
+	 */
 	public JApiCmpReport() {
 		/* Intentionally left blank. */
 	}
 
+	/**
+	 * Generate the report depending on the specified locale.
+	 *
+	 * @param locale the wanted locale to return the report's description, could be <code>null</code>.
+	 * @throws MavenReportException if an error occurs
+	 */
 	@Override
-	protected void executeReport(Locale locale) throws MavenReportException {
+	protected void executeReport(final Locale locale) throws MavenReportException {
 		mavenParameters = new MavenParameters(this.artifactRepositories, this.project,
-				this.mojoExecution, this.versionRangeWithProjectVersion,
-				this.repoSystem, this.repoSession,
-				this.remoteProjectRepositories);
+			this.mojoExecution, this.versionRangeWithProjectVersion,
+			this.repoSystem, this.repoSession,
+			this.remoteProjectRepositories);
 		pluginParameters = new PluginParameters(this.skip,
-				this.newVersion, this.oldVersion, this.parameter,
-				this.dependencies, this.projectBuildDir,
-				this.outputDirectory, true, this.oldVersions,
-				this.newVersions, this.oldClassPathDependencies,
-				this.newClassPathDependencies,
-				new SkipReport(
-						this.skipDiffReport,
-						this.skipHtmlReport,
-						this.skipMarkdownReport,
-						this.skipXmlReport),
-				new BreakBuild());
+			this.newVersion, this.oldVersion, this.parameter,
+			this.dependencies, this.projectBuildDir,
+			this.outputDirectory, true, this.oldVersions,
+			this.newVersions, this.oldClassPathDependencies,
+			this.newClassPathDependencies,
+			new SkipReport(
+				this.skipDiffReport,
+				this.skipHtmlReport,
+				this.skipMarkdownReport,
+				this.skipXmlReport),
+			new BreakBuild());
 		try {
 			processor = new JApiCmpProcessor(pluginParameters, mavenParameters, getLog());
 			final Optional<HtmlOutput> htmlOutputOptional = processor.execute();
@@ -143,6 +150,11 @@ public class JApiCmpReport extends AbstractMavenReport {
 		return ret;
 	}
 
+	/**
+	 * Return the base name used to create report's output file(s).
+	 *
+	 * @return the report's output file(s) base name
+	 */
 	@Override
 	public String getOutputName() {
 		String ret = "japicmp";
@@ -152,8 +164,14 @@ public class JApiCmpReport extends AbstractMavenReport {
 		return ret;
 	}
 
+	/**
+	 * Return the localized report name.
+	 *
+	 * @param locale the wanted locale to return the report's description, could be <code>null</code>.
+	 * @return the name of the report
+	 */
 	@Override
-	public String getName(Locale locale) {
+	public String getName(final Locale locale) {
 		String ret = "japicmp";
 		if (this.parameter.getReportLinkName() != null) {
 			ret = this.parameter.getReportLinkName();
@@ -161,25 +179,36 @@ public class JApiCmpReport extends AbstractMavenReport {
 		return ret;
 	}
 
+	/**
+	 * Return the localized report description.
+	 *
+	 * @param locale the wanted locale to return the report's description, could be <code>null</code>.
+	 * @return the description of this report
+	 */
 	@Override
-	public String getDescription(Locale locale) {
-		if (this.skip || isPomModuleNeedingSkip()) {
-			return "Skipping report";
-		}
-		Options options;
+	public String getDescription(final Locale locale) {
+		String ret = "failed report";
 		try {
-			options = processor.getOptions();
+			final Options options = processor.getOptions();
+			if (options != null) {
+				ret = options.getDifferenceDescription();
+			}
 		} catch (MojoFailureException e) {
-			return "failed report";
+			ret = "failed report: " + e.getMessage();
 		}
-		if (options == null) {
-			return "failed report";
-		}
-		return options.getDifferenceDescription();
+		return ret;
 	}
 
-	private boolean isPomModuleNeedingSkip() {
-		return this.parameter.getSkipPomModules() && "pom".equalsIgnoreCase(
-				this.project.getArtifact().getType());
+	/**
+	 * Verify some conditions before generate the report. Returns {@code false} if {@code skip} is {@code true}, or if
+	 * {@code skipPomModules} is {@code true} and the project type is {@code pom}. Otherwise, returns {@code true}.
+	 *
+	 * @return {@code true} if report should be generated; otherwise, {@code false}
+	 */
+	@Override
+	public boolean canGenerateReport() {
+		final boolean skippingPom = this.parameter.getSkipPomModules() && "pom".equalsIgnoreCase(
+			this.project.getArtifact().getType());
+		return !this.skip && !skippingPom;
 	}
 }
