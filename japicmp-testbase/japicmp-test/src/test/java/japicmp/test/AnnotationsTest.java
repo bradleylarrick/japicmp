@@ -4,6 +4,7 @@ import japicmp.cmp.JarArchiveComparator;
 import japicmp.cmp.JarArchiveComparatorOptions;
 import japicmp.model.*;
 import japicmp.test.annotation.AnnotationChanged;
+import japicmp.test.annotation.AnnotationRemovedFromConstructor;
 import japicmp.test.annotation.TestAnnotation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,22 @@ public class AnnotationsTest {
 		assertThat(jApiClass.isSourceCompatible(), is(true));
 		assertThat(jApiClass.isBinaryCompatible(), is(true));
 		assertThat(jApiClass.getCompatibilityChanges(), not(hasItem(new JApiCompatibilityChange(JApiCompatibilityChangeType.METHOD_DEFAULT_ADDED_IN_IMPLEMENTED_INTERFACE))));
+	}
+
+	@Test
+	public void testAnnotationOnRemovedConstructorIsNotEmpty() {
+		JApiClass jApiClass = getJApiClass(jApiClasses, AnnotationRemovedFromConstructor.class.getName());
+		JApiConstructor removedConstructor = null;
+		for (JApiConstructor c : jApiClass.getConstructors()) {
+			if (c.getChangeStatus() == JApiChangeStatus.REMOVED) {
+				removedConstructor = c;
+				break;
+			}
+		}
+		assertThat("Expected a REMOVED constructor", removedConstructor, is(notNullValue()));
+		assertThat(removedConstructor.getAnnotations().isEmpty(), is(false));
+		JApiAnnotation annotation = getJApiAnnotation(removedConstructor.getAnnotations(), TestAnnotation.class.getName());
+		assertThat(annotation.getChangeStatus(), is(JApiChangeStatus.REMOVED));
 	}
 
 	@Test

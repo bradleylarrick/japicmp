@@ -38,12 +38,16 @@ public abstract class JApiBehavior implements JApiHasModifiers, JApiHasChangeSta
 	private final Optional<Integer> newLineNumber;
 	private final List<JApiCompatibilityChange> compatibilityChanges = new ArrayList<>();
 	private final List<JApiGenericTemplate> genericTemplates;
+	private final Optional<? extends CtBehavior> oldBehaviorForAnnotations;
+	private final Optional<? extends CtBehavior> newBehaviorForAnnotations;
+	private boolean annotationsComputed = false;
 
 	public JApiBehavior(JApiClass jApiClass, String name, Optional<? extends CtBehavior> oldBehavior, Optional<? extends CtBehavior> newBehavior, JApiChangeStatus changeStatus, JarArchiveComparator jarArchiveComparator) {
 		this.jApiClass = jApiClass;
 		this.name = name;
 		this.jarArchiveComparator = jarArchiveComparator;
-		computeAnnotationChanges(annotations, oldBehavior, newBehavior, jarArchiveComparator.getJarArchiveComparatorOptions());
+		this.oldBehaviorForAnnotations = oldBehavior;
+		this.newBehaviorForAnnotations = newBehavior;
 		this.genericTemplates = computeGenericTemplateChanges(oldBehavior, newBehavior);
 		this.accessModifier = extractAccessModifier(oldBehavior, newBehavior);
 		this.finalModifier = extractFinalModifier(oldBehavior, newBehavior);
@@ -516,6 +520,11 @@ public abstract class JApiBehavior implements JApiHasModifiers, JApiHasChangeSta
 	@XmlElement(name = "annotation")
 	@Override
 	public List<JApiAnnotation> getAnnotations() {
+		if (!annotationsComputed) {
+			computeAnnotationChanges(annotations, oldBehaviorForAnnotations, newBehaviorForAnnotations,
+				jarArchiveComparator.getJarArchiveComparatorOptions());
+			annotationsComputed = true;
+		}
 		return annotations;
 	}
 
