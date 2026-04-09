@@ -3,6 +3,10 @@ Versions
 
 The following versions of japicmp are available:
 
+0.25.5 (2026-04-09)
+-------------------
+* getAnnotations() no longer returns empty list in case of removed members [#497](https://github.com/siom79/japicmp/issues/497)
+
 0.25.4 (2026-01-12)
 -------------------
 * Modified getCompileArtifacts() to use reactor to resolve project artifact. [#491](https://github.com/siom79/japicmp/issues/491)
