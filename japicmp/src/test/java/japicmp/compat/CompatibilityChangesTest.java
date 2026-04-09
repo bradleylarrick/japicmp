@@ -3047,7 +3047,7 @@ class CompatibilityChangesTest {
 			@Override
 			public List<CtClass> createOldClasses(ClassPool classPool) throws Exception {
 				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
-				CtFieldBuilder.create().name("field").publicAccess()
+				CtFieldBuilder.create().name("field")
 					.withAnnotation("java.lang.Deprecated")
 					.addToClass(ctClass);
 				return Collections.singletonList(ctClass);
