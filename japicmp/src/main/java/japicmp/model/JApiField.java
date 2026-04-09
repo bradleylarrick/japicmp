@@ -24,6 +24,8 @@ public class JApiField implements JApiHasChangeStatus, JApiHasModifiers, JApiHas
 	private final Optional<CtField> oldFieldOptional;
 	private final Optional<CtField> newFieldOptional;
 	private final List<JApiAnnotation> annotations = new LinkedList<>();
+	private final JarArchiveComparatorOptions options;
+	private boolean annotationsComputed = false;
 	private final JApiModifier<AccessModifier> accessModifier;
 	private final JApiModifier<StaticModifier> staticModifier;
 	private final JApiModifier<FinalModifier> finalModifier;
@@ -40,7 +42,7 @@ public class JApiField implements JApiHasChangeStatus, JApiHasModifiers, JApiHas
 		this.jApiClass = jApiClass;
 		this.oldFieldOptional = oldFieldOptional;
 		this.newFieldOptional = newFieldOptional;
-		computeAnnotationChanges(this.annotations, oldFieldOptional, newFieldOptional, options);
+		this.options = options;
 		this.accessModifier = extractAccessModifier(oldFieldOptional, newFieldOptional);
 		this.staticModifier = extractStaticModifier(oldFieldOptional, newFieldOptional);
 		this.finalModifier = extractFinalModifier(oldFieldOptional, newFieldOptional);
@@ -374,6 +376,10 @@ public class JApiField implements JApiHasChangeStatus, JApiHasModifiers, JApiHas
 	@XmlElementWrapper(name = "annotations")
 	@XmlElement(name = "annotation")
 	public List<JApiAnnotation> getAnnotations() {
+		if (!annotationsComputed) {
+			computeAnnotationChanges(this.annotations, this.oldFieldOptional, this.newFieldOptional, this.options);
+			annotationsComputed = true;
+		}
 		return annotations;
 	}
 

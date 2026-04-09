@@ -2986,4 +2986,83 @@ class CompatibilityChangesTest {
 		assertThat(jApiClass.isBinaryCompatible(), is(true));
 		assertThat(jApiClass.isSourceCompatible(), is(true));
 	}
+
+	@Test
+	void testAnnotationsOnRemovedConstructorAreNotEmpty() throws Exception {
+		JarArchiveComparatorOptions options = new JarArchiveComparatorOptions();
+		List<JApiClass> jApiClasses = ClassesHelper.compareClasses(options, new ClassesHelper.ClassesGenerator() {
+			@Override
+			public List<CtClass> createOldClasses(ClassPool classPool) throws Exception {
+				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
+				CtConstructorBuilder.create().publicAccess()
+					.withAnnotation("java.lang.Deprecated")
+					.addToClass(ctClass);
+				return Collections.singletonList(ctClass);
+			}
+			@Override
+			public List<CtClass> createNewClasses(ClassPool classPool) {
+				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
+				return Collections.singletonList(ctClass);
+			}
+		});
+		JApiClass jApiClass = getJApiClass(jApiClasses, "japicmp.Test");
+		JApiConstructor removedCtor = jApiClass.getConstructors().stream()
+			.filter(c -> c.getChangeStatus() == JApiChangeStatus.REMOVED)
+			.findFirst().orElseThrow(() -> new AssertionError("No removed constructor found"));
+		assertThat(removedCtor.getAnnotations().isEmpty(), is(false));
+		assertThat(removedCtor.getAnnotations().get(0).getFullyQualifiedName(), is("java.lang.Deprecated"));
+		assertThat(removedCtor.getAnnotations().get(0).getChangeStatus(), is(JApiChangeStatus.REMOVED));
+	}
+
+	@Test
+	void testAnnotationsOnRemovedMethodAreNotEmpty() throws Exception {
+		JarArchiveComparatorOptions options = new JarArchiveComparatorOptions();
+		List<JApiClass> jApiClasses = ClassesHelper.compareClasses(options, new ClassesHelper.ClassesGenerator() {
+			@Override
+			public List<CtClass> createOldClasses(ClassPool classPool) throws Exception {
+				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
+				CtMethodBuilder.create().name("method").publicAccess()
+					.withAnnotation("java.lang.Deprecated")
+					.addToClass(ctClass);
+				return Collections.singletonList(ctClass);
+			}
+			@Override
+			public List<CtClass> createNewClasses(ClassPool classPool) {
+				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
+				return Collections.singletonList(ctClass);
+			}
+		});
+		JApiClass jApiClass = getJApiClass(jApiClasses, "japicmp.Test");
+		JApiMethod removedMethod = getJApiMethod(jApiClass.getMethods(), "method");
+		assertThat(removedMethod.getChangeStatus(), is(JApiChangeStatus.REMOVED));
+		assertThat(removedMethod.getAnnotations().isEmpty(), is(false));
+		assertThat(removedMethod.getAnnotations().get(0).getFullyQualifiedName(), is("java.lang.Deprecated"));
+		assertThat(removedMethod.getAnnotations().get(0).getChangeStatus(), is(JApiChangeStatus.REMOVED));
+	}
+
+	@Test
+	void testAnnotationsOnRemovedFieldAreNotEmpty() throws Exception {
+		JarArchiveComparatorOptions options = new JarArchiveComparatorOptions();
+		List<JApiClass> jApiClasses = ClassesHelper.compareClasses(options, new ClassesHelper.ClassesGenerator() {
+			@Override
+			public List<CtClass> createOldClasses(ClassPool classPool) throws Exception {
+				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
+				CtFieldBuilder.create().name("field")
+					.withAnnotation("java.lang.Deprecated")
+					.addToClass(ctClass);
+				return Collections.singletonList(ctClass);
+			}
+			@Override
+			public List<CtClass> createNewClasses(ClassPool classPool) {
+				CtClass ctClass = CtClassBuilder.create().name("japicmp.Test").addToClassPool(classPool);
+				return Collections.singletonList(ctClass);
+			}
+		});
+		JApiClass jApiClass = getJApiClass(jApiClasses, "japicmp.Test");
+		JApiField removedField = getJApiField(jApiClass.getFields(), "field");
+		assertThat(removedField.getChangeStatus(), is(JApiChangeStatus.REMOVED));
+		assertThat(removedField.getAnnotations().isEmpty(), is(false));
+		assertThat(removedField.getAnnotations().get(0).getFullyQualifiedName(), is("java.lang.Deprecated"));
+		assertThat(removedField.getAnnotations().get(0).getChangeStatus(), is(JApiChangeStatus.REMOVED));
+	}
 }

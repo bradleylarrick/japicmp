@@ -43,6 +43,7 @@ public class JApiClass implements JApiHasModifiers, JApiHasChangeStatus, JApiHas
 	private boolean changeCausedByClassElement = false;
 	private JApiJavaObjectSerializationChangeStatus jApiJavaObjectSerializationChangeStatus = JApiJavaObjectSerializationChangeStatus.NOT_SERIALIZABLE;
 	private List<JApiGenericTemplate> genericTemplates = new ArrayList<>();
+	private boolean annotationsComputed = false;
 
 	public JApiClass(JarArchiveComparator jarArchiveComparator, String fullyQualifiedName, Optional<CtClass> oldClass,
 					 Optional<CtClass> newClass, JApiChangeStatus changeStatus, JApiClassType classType) {
@@ -57,7 +58,6 @@ public class JApiClass implements JApiHasModifiers, JApiHasChangeStatus, JApiHas
 		computeMethodChanges(this, oldClass, newClass);
 		computeInterfaceChanges(this.interfaces, oldClass, newClass);
 		computeFieldChanges(this.fields, oldClass, newClass);
-		computeAnnotationChanges(this.annotations, oldClass, newClass);
 		this.accessModifier = extractAccessModifier(oldClass, newClass);
 		this.finalModifier = extractFinalModifier(oldClass, newClass);
 		this.staticModifier = extractStaticModifier(oldClass, newClass);
@@ -933,6 +933,10 @@ public class JApiClass implements JApiHasModifiers, JApiHasChangeStatus, JApiHas
 	@XmlElementWrapper(name = "annotations")
 	@XmlElement(name = "annotation")
 	public List<JApiAnnotation> getAnnotations() {
+		if (!annotationsComputed) {
+			computeAnnotationChanges(this.annotations, this.oldClass, this.newClass);
+			annotationsComputed = true;
+		}
 		return annotations;
 	}
 
