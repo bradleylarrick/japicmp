@@ -756,7 +756,10 @@ public class JApiCmpProcessor {
 		HashSet<Artifact> result = new HashSet<>(1 + projectDependencies.size());
 		// Include the project artifact; use the reactor to resolve the project artifact in case it's not being built
 		Artifact project = RepositoryUtils.toArtifact(mavenProject.getArtifact());
-		result.add(resolveArtifact(project, ConfigurationVersion.NEW));
+		Artifact resolvedProject = resolveArtifact(project, ConfigurationVersion.NEW);
+		if (resolvedProject != null) {
+			result.add(resolvedProject);
+		}
 		for (org.apache.maven.artifact.Artifact dep : projectDependencies) {
 			if (dep.getArtifactHandler().isAddedToClasspath()) {
 				if (org.apache.maven.artifact.Artifact.SCOPE_COMPILE.equals(dep.getScope())
