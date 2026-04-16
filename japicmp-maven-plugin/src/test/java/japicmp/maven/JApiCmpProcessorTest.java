@@ -2,11 +2,14 @@ package japicmp.maven;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import japicmp.cmp.ClassesHelper;
 import japicmp.cmp.JarArchiveComparator;
@@ -18,13 +21,20 @@ import japicmp.maven.util.CtInterfaceBuilder;
 import japicmp.maven.util.CtMethodBuilder;
 import javassist.ClassPool;
 import javassist.CtClass;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.project.MavenProject;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -465,5 +475,34 @@ final class JApiCmpProcessorTest extends AbstractTest {
 			assertThat(msg, containsString("japicmp.Test.field:FIELD_REMOVED"));
 			assertThat(msg, containsString("japicmp.Test:SUPERCLASS_REMOVED"));
 		}
+	}
+
+	@Test
+	void testSetUpClassPathUsingMavenProjectNoNPEWhenProjectArtifactUnresolvable() throws Exception {
+		// Reproduce issue #504: when the project artifact cannot be resolved and the ignore flag
+		// is set, resolveArtifact() returns null. Before the fix, that null was added to the set
+		// and caused an NPE on the next artifact.getFile() call.
+		configParams.setIgnoreNonResolvableArtifacts(Boolean.TRUE.toString());
+
+		RepositorySystem repoSystem = mock(RepositorySystem.class);
+		when(repoSystem.resolveArtifact(any(), any()))
+			.thenThrow(new ArtifactResolutionException(Collections.emptyList()));
+
+		RemoteRepository remoteRepo = new RemoteRepository.Builder("default", "releases",
+			"https://repo.maven.apache.org/maven2").build();
+		MavenParameters params = new MavenParameters(new ArrayList<>(), new MavenProject(),
+			mock(MojoExecution.class), "", repoSystem,
+			mock(RepositorySystemSession.class),
+			Collections.singletonList(remoteRepo));
+
+		JApiCmpProcessor processor = new JApiCmpProcessor(
+			createPluginParameters(configParams), params, logger);
+
+		JarArchiveComparatorOptions options = new JarArchiveComparatorOptions();
+		Method method = JApiCmpProcessor.class.getDeclaredMethod(
+			"setUpClassPathUsingMavenProject", JarArchiveComparatorOptions.class);
+		method.setAccessible(true);
+
+		assertDoesNotThrow(() -> method.invoke(processor, options));
 	}
 }
