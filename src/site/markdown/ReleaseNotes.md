@@ -3,6 +3,10 @@ Versions
 
 The following versions of japicmp are available:
 
+0.25.6 (2026-04-16)
+-------------------
+* No NPE in case of Maven artifacts without file [#504](https://github.com/siom79/japicmp/issues/504)
+
 0.25.5 (2026-04-09)
 -------------------
 * getAnnotations() no longer returns empty list in case of removed members [#497](https://github.com/siom79/japicmp/issues/497)
